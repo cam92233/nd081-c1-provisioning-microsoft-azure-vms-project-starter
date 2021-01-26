@@ -19,16 +19,6 @@ imageSourceUrl = 'https://'+ app.config['BLOB_ACCOUNT']  + '.blob.core.windows.n
 @app.route('/home')
 @login_required
 def home():
-    log = request.values.get('log_button')
-    if log:
-     if log == 'info':
-         app.logger.info('No issue.')
-     elif log == 'warning':
-         app.logger.warning('Warning occurred.')
-     elif log == 'error':
-         app.logger.error('Error occurred.')
-     elif log == 'critical':
-         app.logger.critical('Critical error occurred.')
     user = User.query.filter_by(username=current_user.username).first_or_404()
     posts = Post.query.all()
     return render_template(
@@ -70,22 +60,36 @@ def post(id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    log = request.values.get('log_button')
+    app.logger.info('login starts here')
+    if log:
+     if log == 'info':
+         app.logger.info('No issue.')
+     elif log == 'warning':
+         app.logger.warning('Warning occurred.')
+     elif log == 'error':
+         app.logger.error('Error occurred.')
+     elif log == 'critical':
+         app.logger.critical('Critical error occurred.')
     if current_user.is_authenticated:
+        app.logger.info('admin logged in successfully')
         return redirect(url_for('home'))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
+            app.logger.error('invalid login attempt')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('home')
+        app.logger.info('admin logged in successfully')
         return redirect(next_page)
     session["state"] = str(uuid.uuid4())
     auth_url = _build_auth_url(scopes=Config.SCOPE, state=session["state"])
-    return render_template('login.html', title='Sign In', form=form, auth_url=auth_url)
+    return render_template('login.html', title='Sign In', form=form, auth_url=auth_url, log=log)
 
 @app.route(Config.REDIRECT_PATH)  # Its absolute URL must match your app's redirect_uri set in AAD
 def authorized():
